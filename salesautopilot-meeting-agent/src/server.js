@@ -1,11 +1,18 @@
 import express from "express";
+import axios from "axios";
 import { processMeetingTranscript } from "./agent.js";
 import { createMeetingItem } from "./monday.js";
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
-// Make.com ezt a végpontot hívja: transcript elemzés + Monday item létrehozás egy lépésben
+// Make.com hívja ezt a végpontot, miután kinyerte a Google Docs szövegét:
+//   { transcript, title, drive_link }
+//
+// Flow:
+//   1. Claude elemzés (scoring, szegmens, action items)
+//   2. Monday.com item létrehozása
+//   3. Make.com webhook trigger → következő scenario indul
 app.post("/process-transcript", async (req, res) => {
   const { transcript, title, drive_link } = req.body;
 
@@ -25,6 +32,20 @@ app.post("/process-transcript", async (req, res) => {
     const itemId = await createMeetingItem(analysis, title);
     console.log(`Monday item létrehozva: ${itemId}`);
 
+    // 3. Make.com trigger – következő scenario indítása
+    if (process.env.MAKE_WEBHOOK_URL) {
+      await axios.post(process.env.MAKE_WEBHOOK_URL, {
+        itemId,
+        score: analysis.osszesitett_pont,
+        ajanlas,
+        szegmens: analysis.szegmens,
+        title,
+        drive_link,
+        feldolgozas_datuma: analysis.feldolgozas_datuma,
+      });
+      console.log("Make.com trigger elküldve.");
+    }
+
     res.json({ success: true, itemId, score: analysis.osszesitett_pont });
   } catch (err) {
     console.error("Hiba:", err.message);
@@ -33,6 +54,12 @@ app.post("/process-transcript", async (req, res) => {
 });
 
 // GET /health
-app.get("/health", (_, res) => res.json({ status: "ok" }));
+app.get("/health", (_, res) =>
+  res.json({
+    status: "ok",
+    make_webhook: !!process.env.MAKE_WEBHOOK_URL,
+    monday: !!(process.env.MONDAY_API_KEY && process.env.MONDAY_BOARD_ID),
+  })
+);
 
 export { app };
