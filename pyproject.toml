@@ -25,9 +25,6 @@ dev = [
     "ruff>=0.4.0",
 ]
 
-[project.scripts]
-probanap = "sapi_probanap.cli:app"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/sapi_probanap"]
 
