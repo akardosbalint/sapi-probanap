@@ -75,3 +75,29 @@ class ProcessingResult(BaseModel):
     @property
     def sendable(self) -> list[ScoredNewsPiece]:
         return self.approved + self.review
+
+
+# ── Knowledge-base extraction models ──────────────────────────────────────────
+
+class KnowledgeCategory(str, Enum):
+    EMAIL_MARKETING = "Email marketing"
+    INTEGRATION = "Integráció"
+    AUTOMATION = "Automatizálás"
+    STRATEGY = "Stratégia"
+    TECHNICAL_SETUP = "Technikai beállítás"
+
+
+class TudasElem(BaseModel):
+    """One self-contained, reusable knowledge piece."""
+    cim: str = Field(description="Rövid, tömör cím — önmagában is érthető")
+    tartalom: str = Field(description="2-4 mondatos kifejtés, önállóan érthető, kontextus nélkül is")
+    kategoria: KnowledgeCategory = Field(description="Tudáselem kategóriája")
+    hasznossagi_pont: int = Field(ge=1, le=10, description="Hasznosság 1-10 skálán")
+    miert_hasznos: str = Field(description="1 mondat: kinek és miért releváns ez a tudás")
+
+
+class TudasbazisResult(BaseModel):
+    """Full output of the knowledge-extraction agent."""
+    tudaselemek: list[TudasElem] = Field(description="Összes kinyert tudáselem, csökkenő hasznossági sorrendben")
+    osszesen: int = Field(description="Kinyert tudáselemek száma")
+    legfontosabb_tanuls: str = Field(description="A szöveg egyetlen legfontosabb üzenete 1-2 mondatban")

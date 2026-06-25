@@ -14,7 +14,8 @@ from rich.table import Table
 from rich import box
 
 from sapi_probanap.agent import TranscriptAgent
-from sapi_probanap.models import NewsPieceStatus
+from sapi_probanap.knowledge_agent import TudasbazisAgent
+from sapi_probanap.models import NewsPieceStatus, TudasbazisResult
 from sapi_probanap.pipeline import TranscriptPipeline
 from sapi_probanap.scorer import NewsScorer
 from sapi_probanap.webhook import MakeWebhookSender
@@ -159,6 +160,76 @@ def score_only(
         result = pipeline.run(text)
 
     _print_results(result, output)
+
+
+def _print_tudasbazis(result: TudasbazisResult, output_format: str) -> None:
+    if output_format == "json":
+        console.print_json(result.model_dump_json(indent=2))
+        return
+
+    console.print(f"\n[bold]Legfontosabb tanulság:[/bold] {result.legfontosabb_tanuls}")
+    console.print(f"Kinyert tudáselemek: [cyan]{result.osszesen}[/cyan]\n")
+
+    score_colors = {range(9, 11): "green", range(7, 9): "yellow", range(4, 7): "blue", range(1, 4): "dim"}
+
+    def score_color(pt: int) -> str:
+        for r, c in score_colors.items():
+            if pt in r:
+                return c
+        return "white"
+
+    table = Table(box=box.ROUNDED, show_lines=True)
+    table.add_column("Pont", width=6)
+    table.add_column("Cím", min_width=28)
+    table.add_column("Kategória", width=22)
+    table.add_column("Tartalom", min_width=40)
+    table.add_column("Miért hasznos", min_width=30)
+
+    for elem in result.tudaselemek:
+        color = score_color(elem.hasznossagi_pont)
+        table.add_row(
+            f"[{color}]{elem.hasznossagi_pont}[/{color}]",
+            elem.cim,
+            elem.kategoria.value,
+            elem.tartalom,
+            elem.miert_hasznos,
+        )
+
+    console.print(table)
+
+
+@app.command("extract-knowledge")
+def extract_knowledge(
+    text_file: Optional[Path] = typer.Argument(None, help="Szövegfájl elérési útja (vagy stdin)"),
+    output: str = typer.Option("table", "--output", "-o", help="Kimenet formátuma: table vagy json"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Szövegből strukturált tudáselemeket nyer ki (Tudásbázis Kinyerő Agent)."""
+    _setup_logging(verbose)
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        console.print("[red]Error:[/red] ANTHROPIC_API_KEY environment variable not set.")
+        raise typer.Exit(1)
+
+    agent = TudasbazisAgent(api_key=api_key)
+
+    if text_file:
+        if not text_file.exists():
+            console.print(f"[red]File not found:[/red] {text_file}")
+            raise typer.Exit(1)
+        with console.status(f"Feldolgozás: [bold]{text_file.name}[/bold]…"):
+            result = agent.process_file(text_file)
+    else:
+        console.print("[dim]Szöveg olvasása stdin-ről…[/dim]")
+        text = sys.stdin.read()
+        if not text.strip():
+            console.print("[red]Error:[/red] Üres bemenet.")
+            raise typer.Exit(1)
+        with console.status("Tudáselemek kinyerése…"):
+            result = agent.process(text)
+
+    _print_tudasbazis(result, output)
 
 
 if __name__ == "__main__":
