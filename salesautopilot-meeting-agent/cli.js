@@ -4,7 +4,7 @@ dotenv.config();
 
 import fs from "fs";
 import readline from "readline";
-import { processMeetingTranscript } from "./src/processor.js";
+import { processMeetingTranscript } from "./src/agent.js";
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error("HIBA: Az ANTHROPIC_API_KEY környezeti változó nincs beállítva.");
