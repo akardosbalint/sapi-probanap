@@ -1,0 +1,23 @@
+Meeting: Q2 Product & Business Review
+Date: June 20, 2026
+Participants: Sarah Chen (CEO), Marcus Rodriguez (CPO), Aisha Patel (CFO), Tom Fischer (VP Sales)
+
+Sarah Chen: Good morning everyone. Let's get started with the big news first. We've officially signed the partnership agreement with DataVault Inc. This gives us exclusive access to their enterprise data lake infrastructure across EMEA. The deal closes July 1st.
+
+Marcus Rodriguez: That's huge for our product roadmap. On the product side, I'm excited to announce that we're launching our AI Analytics Suite 3.0 next Tuesday, June 25th. This is our biggest release of the year — it includes real-time anomaly detection, a completely rebuilt dashboard, and native integration with Salesforce and HubSpot.
+
+Aisha Patel: From a financial perspective, Q2 revenue came in at 14.2 million dollars, which is 23% ahead of our Q2 target. ARR has crossed the 50 million milestone for the first time in company history. I should also note we completed our Series C extension — an additional 8 million dollars from existing investors, which closes today.
+
+Tom Fischer: Sales has been strong. We closed five enterprise deals this quarter, including TechCorp Global — that's a 2.4 million dollar annual contract, our largest single deal ever. We're seeing strong pipeline in healthcare and financial services verticals.
+
+Sarah Chen: On the people side, we're promoting Dr. Elena Vasquez to Chief Data Scientist. She's been with us three years and has been instrumental in our ML infrastructure. Her promotion is effective July 1st. We're also opening twenty-five new positions across engineering and sales.
+
+Marcus Rodriguez: One more important item — we've identified a significant performance issue in our legacy API that affects customers using our v1 endpoints. We're pushing an emergency patch this Friday. Affected customers have been notified. This is critical to fix before the 3.0 launch.
+
+Aisha Patel: Related to that — we need to accelerate our migration away from v1 to protect margins. v1 support costs us approximately 400 thousand dollars per quarter in infrastructure overhead.
+
+Sarah Chen: Agreed. We'll set the v1 sunset date as December 31st, 2026. Communications go out next week. Any other items before we wrap up?
+
+Tom Fischer: One market note — our main competitor Nexalytics just raised 30 million in a Series D. Their CEO publicly announced they're targeting our mid-market segment. We should expect increased competition in Q3 and Q4.
+
+Sarah Chen: Good heads-up. Alright, that's everything. Thanks everyone.

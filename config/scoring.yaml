@@ -1,0 +1,32 @@
+# Scoring configuration for extracted news pieces
+
+weights:
+  relevance: 0.30      # How newsworthy / relevant to audience
+  specificity: 0.25    # Level of concrete detail
+  impact: 0.25         # Business/market impact
+  timeliness: 0.10     # Time sensitivity
+  source_quality: 0.10 # Authority of the source within the meeting
+
+thresholds:
+  approved: 7.0        # Score >= this → auto-approved for sending
+  review: 4.0          # Score >= this → flagged for human review
+                       # Score < review → rejected
+
+confidence_filter:
+  min_confidence: 0.5  # Reject news pieces below this agent confidence
+
+category_boosts:
+  # Optional per-category multipliers applied to the total score
+  product_launch: 1.1
+  financial: 1.05
+  partnership: 1.05
+
+time_sensitivity_boosts:
+  urgent: 1.15
+  normal: 1.0
+  low: 0.90
+
+# Hard-reject rules: any piece matching these is rejected regardless of score
+reject_rules:
+  - min_summary_words: 10      # Summary must have at least N words
+  - min_source_quote_chars: 20 # Source quote must be at least N chars
