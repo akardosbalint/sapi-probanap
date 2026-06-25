@@ -1,8 +1,9 @@
 {
   "name": "salesautopilot-meeting-agent",
   "version": "1.0.0",
-  "description": "",
+  "description": "SalesAutopilot meeting transcript analyzer agent",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "cli": "node cli.js",
