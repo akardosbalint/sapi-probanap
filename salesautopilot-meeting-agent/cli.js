@@ -5,6 +5,7 @@ dotenv.config();
 import fs from "fs";
 import readline from "readline";
 import { processMeetingTranscript } from "./src/processor.js";
+import { createMeetingItem } from "./src/monday.js";
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error("HIBA: Az ANTHROPIC_API_KEY környezeti változó nincs beállítva.");
@@ -14,11 +15,13 @@ if (!process.env.ANTHROPIC_API_KEY) {
 function formatResult(result) {
   const t = result.tartalmi_scoring;
   const m = result.minosegi_scoring;
+  const ajanlas = result["ajanlás"] ?? result["ajanlас"] ?? "–";
 
   return `
 === SALESAUTOPILOT TARTALOMSTRATÉGIAI ELEMZÉS ===
-Feldolgozás: ${result.feldolgozas_datuma}
-${result.drive_link ? `Drive link: ${result.drive_link}` : ""}
+Feldolgozás : ${result.feldolgozas_datuma}
+${result.drive_link ? `Drive link  : ${result.drive_link}` : ""}
+${result.monday_item_id ? `Monday item : #${result.monday_item_id}` : ""}
 
 1. ÖSSZEFOGLALÁS
 ${result.osszefoglalas}
@@ -40,7 +43,7 @@ ${result.szegmens_indoklas}
    RÉSZÖSSZEG             : ${m.reszosszeg}/50
 
 5. ÖSSZESÍTETT PONT: ${result.osszesitett_pont}/100
-   AJÁNLÁS: ${result.ajanlас}
+   AJÁNLÁS: ${ajanlas}
 
 6. HÍRLEVÉL ANGLE
 ${result.hirlevel_angle}
@@ -51,12 +54,16 @@ ${result.action_items.map((item, i) => `   ${i + 1}. ${item}`).join("\n")}
 }
 
 async function main() {
+  // Argumentumok: [transcriptFájl] [driveLink] [meetingTitle]
+  const filePath = process.argv[2];
+  const driveLink = process.argv[3] || "";
+  const meetingTitle =
+    process.argv[4] || `Meeting – ${new Date().toLocaleDateString("hu-HU")}`;
+
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
 
   let transcript = "";
-  const filePath = process.argv[2];
-  const driveLink = process.argv[3] || "";
 
   if (filePath) {
     if (!fs.existsSync(filePath)) {
@@ -85,7 +92,19 @@ async function main() {
 
   try {
     const result = await processMeetingTranscript(transcript, driveLink);
-    console.log(formatResult(result));
+
+    // Monday.com feltöltés, ha van config
+    if (process.env.MONDAY_API_KEY && process.env.MONDAY_BOARD_ID) {
+      const upload = await ask("Feltöltjük Monday.com-ra? (i/n): ");
+      if (upload.trim().toLowerCase() === "i") {
+        console.log("Monday.com feltöltés...");
+        const itemId = await createMeetingItem(result, meetingTitle);
+        result.monday_item_id = itemId;
+        console.log(`Monday item létrehozva: #${itemId}`);
+      }
+    }
+
+    console.log("\n" + formatResult(result));
 
     const saveFile = await ask("\nMentsük JSON-ba? (fájlnév vagy üres = nem): ");
     if (saveFile.trim()) {
