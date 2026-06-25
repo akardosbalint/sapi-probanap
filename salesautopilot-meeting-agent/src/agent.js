@@ -4,49 +4,53 @@ dotenv.config();
 
 const client = new Anthropic();
 
-const SCORING_PROMPT = `Te egy SalesAutopilot tartalomstratégiai asszisztens vagy.
-Az alábbi meeting transcript egy partner/integrációs megbeszélésről készült.
+const SYSTEM_PROMPT = `You are a JSON-only API. You must respond with raw JSON only. No markdown, no backticks, no explanations. Your entire response must be a single valid JSON object starting with { and ending with }.`;
 
-FELADATOD - válaszolj KIZÁRÓLAG valid JSON formátumban, semmi más szöveg:
+const KNOWLEDGE_PROMPT = `Az alábbi szövegből gyűjtsd ki az összes önálló, hasznos tudáselemet. Minden tudáselem egy konkrét tanács, módszer, szabály, magyarázat vagy felismerés legyen, amit valaki hasznosítani tud.
 
+NEM kell: napirend, köszöntő, technikai problémák, bemutatkozások, időpont-egyeztetések.
+IGEN kell: minden konkrét szakmai tudás, tanács, magyarázat, best practice.
+
+A JSON struktúra:
 {
-  "osszefoglalas": "max 150 szó: ki volt jelen, mi volt a cél, 3 legfontosabb pont",
-  "szegmens": "A|B|C|D",
-  "szegmens_indoklas": "1-2 mondat miért",
-  "tartalmi_scoring": {
-    "use_case": { "pont": 0-15, "indok": "..." },
-    "iparagi_insight": { "pont": 0-15, "indok": "..." },
-    "actionable_tipp": { "pont": 0-10, "indok": "..." },
-    "szegmens_relevancia": { "pont": 0-10, "indok": "..." },
-    "reszosszeg": 0-50
-  },
-  "minosegi_scoring": {
-    "konkrektsag": { "pont": 0-20, "indok": "..." },
-    "ujszeruseg": { "pont": 0-15, "indok": "..." },
-    "hitelessegi_forras": { "pont": 0-15, "indok": "..." },
-    "reszosszeg": 0-50
-  },
-  "osszesitett_pont": 0-100,
-  "ajanlас": "Hírlevélbe mehet|Átdolgozás kell|Nem releváns",
-  "hirlevel_angle": "2-3 mondat a javasolt feldolgozási irányról",
-  "action_items": ["item1", "item2"]
-}`;
+  "tudaselemek": [
+    {
+      "cim": "Rövid, tömör cím",
+      "tartalom": "A tudáselem részletes kifejtése 2-4 mondatban, önállóan érthető formában",
+      "kategoria": "pl. Email marketing / Integráció / Automatizálás / Stratégia / Technikai beállítás",
+      "hasznossagi_pont": 1-10,
+      "miert_hasznos": "1 mondatban: kinek és miért releváns ez a tudás"
+    }
+  ],
+  "osszesen": 0,
+  "legfontosabb_tanuls": "A szöveg egyetlen legfontosabb üzenete 1-2 mondatban"
+}
+
+Pontozási szabályok:
+- 9-10: azonnal alkalmazható, konkrét lépés, általánosan érvényes
+- 7-8: fontos tanács, de kontextusfüggő vagy előismeret kell
+- 4-6: hasznos magyarázat, de nem közvetlen akció
+- 1-3: általános, közismert vagy csak szűk célcsoportnak releváns
+
+Rendezd a tudáselemeket hasznossági pont szerint csökkenő sorrendbe.
+
+Szöveg:`;
 
 export async function processMeetingTranscript(transcriptText, driveLink = "") {
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 2000,
+    max_tokens: 4000,
+    system: SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
-        content: `${SCORING_PROMPT}\n\nTRANSCRIPT:\n${transcriptText}`,
+        content: `${KNOWLEDGE_PROMPT}\n${transcriptText}`,
       },
     ],
   });
 
   const responseText = message.content[0].text;
 
-  // JSON blokk kinyerése, ha a model mégis szöveget rak köré
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error(`Nem sikerült JSON-t kinyerni a válaszból:\n${responseText}`);
@@ -54,29 +58,8 @@ export async function processMeetingTranscript(transcriptText, driveLink = "") {
 
   const result = JSON.parse(jsonMatch[0]);
 
-  // Számított összeg validáció
-  const tartalmiOsszeg =
-    (result.tartalmi_scoring?.use_case?.pont ?? 0) +
-    (result.tartalmi_scoring?.iparagi_insight?.pont ?? 0) +
-    (result.tartalmi_scoring?.actionable_tipp?.pont ?? 0) +
-    (result.tartalmi_scoring?.szegmens_relevancia?.pont ?? 0);
-
-  const minosegi =
-    (result.minosegi_scoring?.konkrektsag?.pont ?? 0) +
-    (result.minosegi_scoring?.ujszeruseg?.pont ?? 0) +
-    (result.minosegi_scoring?.hitelessegi_forras?.pont ?? 0);
-
   return {
     ...result,
-    tartalmi_scoring: {
-      ...result.tartalmi_scoring,
-      reszosszeg: tartalmiOsszeg,
-    },
-    minosegi_scoring: {
-      ...result.minosegi_scoring,
-      reszosszeg: minosegi,
-    },
-    osszesitett_pont: tartalmiOsszeg + minosegi,
     drive_link: driveLink,
     feldolgozas_datuma: new Date().toISOString(),
   };
