@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["cd salesautopilot-meeting-agent && npm install"]
+cmds = ["npm install"]
 
 [start]
-cmd = "node salesautopilot-meeting-agent/index.js"
+cmd = "node index.js"
