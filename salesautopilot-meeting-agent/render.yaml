@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: salesautopilot-meeting-agent
+    runtime: node
+    startCommand: node index.js
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MAKE_WEBHOOK_URL
+        sync: false
+      - key: PORT
+        value: 3000
